@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ランダム数字生成</title>
+  <style>
+    body {
+      font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 50px;
+    }
+    .container {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 400px;
+    }
+    h3 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin: 10px 0;
+      font-size: 14px;
+      text-align: left;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 15px;
+      background: #4CAF50;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f9fafb;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      min-height: 24px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h3>ランダム数字生成</h3>
+    <label>生成個数: <input type="number" id="n" value="5"></label>
+    <label>範囲 (1 ~ n): <input type="number" id="k" value="10"></label>
+    <label>欠席 (カンマ区切り): <input type="text" id="absent" value="3,7"></label>
+    <label>生成モード:
+      <select id="mode" onchange="modeChanged()">
+        <option value="continuous">連続生成</option>
+        <option value="single">単発生成</option>
+      </select>
+    </label>
+    <button onclick="generate()">生成</button>
+    <p id="result">結果がここに表示されます</p>
+  </div>
+
+  <script>
+    let singleGenerated = new Set(); // 単発で出た数字
+    let history = []; // 履歴
+
+    function shuffle(array){
+      for(let i = array.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function modeChanged() {
+      // モード切り替え時に履歴・単発セットをリセット
+      singleGenerated.clear();
+      history = [];
+      updateResultDisplay();
+    }
+
+    function updateResultDisplay() {
+      const display = history.length > 0 ? history.join(", ") : "結果がここに表示されます";
+      document.getElementById("result").innerText = display;
+    }
+
+    function generate() {
+      const n = parseInt(document.getElementById("n").value);
+      const k = parseInt(document.getElementById("k").value);
+      const absent = document.getElementById("absent").value
+        .split(",")
+        .map(x => parseInt(x.trim()))
+        .filter(x => !isNaN(x));
+      const mode = document.getElementById("mode").value;
+
+      const available = [];
+      for (let i = 1; i <= k; i++) {
+        if (!absent.includes(i)) available.push(i);
+      }
+
+      if (available.length === 0) {
+        // 候補がない場合は表示を初期化
+        singleGenerated.clear();
+        history = [];
+        updateResultDisplay();
+        return;
+      }
+
+      if (mode === "continuous") {
+        const shuffled = shuffle([...available]);
+        history = shuffled.slice(0, Math.min(n, shuffled.length));
+      } else {
+        // 単発生成
+        let remaining = available.filter(x => !singleGenerated.has(x));
+        if (remaining.length === 0) {
+          // すべて出たらリセット
+          singleGenerated.clear();
+          history = [];
+          remaining = [...available];
+        }
+        const idx = Math.floor(Math.random() * remaining.length);
+        const chosen = remaining[idx];
+        singleGenerated.add(chosen);
+        history.push(chosen);
+      }
+
+      updateResultDisplay();
+    }
+  </script>
+</body>
+</html>
