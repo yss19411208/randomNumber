@@ -18,7 +18,7 @@
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       text-align: center;
-      width: 400px;
+      width: 420px;
     }
     h3 {
       margin-bottom: 20px;
@@ -39,7 +39,7 @@
       font-size: 14px;
     }
     button {
-      margin-top: 20px;
+      margin-top: 15px;
       padding: 10px 15px;
       background: #4CAF50;
       border: none;
@@ -51,6 +51,13 @@
     }
     button:hover {
       background: #45a049;
+    }
+    #resetBtn {
+      background: #888;
+      margin-left: 10px;
+    }
+    #resetBtn:hover {
+      background: #777;
     }
     #result {
       margin-top: 20px;
@@ -64,27 +71,57 @@
       min-height: 24px;
       word-break: break-all;
     }
+    .number-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-top: 10px;
+      text-align: center;
+    }
+    .num-btn {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 6px 0;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+      user-select: none;
+    }
+    .num-btn.selected {
+      background: #007bff;
+      color: white;
+      border-color: #0056b3;
+    }
+    .num-btn:hover {
+      background: #e6f0ff;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h3>ランダム数字生成</h3>
     <label>生成個数: <input type="number" id="n" value="5"></label>
-    <label>範囲 (1 ~ n): <input type="number" id="k" value="10"></label>
-    <label>欠席 (カンマ区切り): <input type="text" id="absent" value="3,7"></label>
-    <label>生成モード:
+    <label>範囲 (1 ~ n): <input type="number" id="k" value="30" onchange="updateNumberButtons()"></label>
+    <label>欠席者を選択:</label>
+    <div id="numberGrid" class="number-grid"></div>
+    <div style="margin-top:10px;">
+      <button onclick="generate()">生成</button>
+      <button id="resetBtn" onclick="resetAbsent()">リセット</button>
+    </div>
+    <label style="margin-top:20px;">生成モード:
       <select id="mode" onchange="modeChanged()">
         <option value="continuous">連続生成</option>
         <option value="single">単発生成</option>
       </select>
     </label>
-    <button onclick="generate()">生成</button>
     <p id="result">結果がここに表示されます</p>
   </div>
 
   <script>
-    let singleGenerated = new Set(); // 単発で出た数字
-    let history = []; // 履歴
+    let singleGenerated = new Set();
+    let history = [];
+    let absentSet = new Set();
 
     function shuffle(array){
       for(let i = array.length - 1; i > 0; i--){
@@ -95,7 +132,6 @@
     }
 
     function modeChanged() {
-      // モード切り替え時に履歴・単発セットをリセット
       singleGenerated.clear();
       history = [];
       updateResultDisplay();
@@ -106,22 +142,47 @@
       document.getElementById("result").innerText = display;
     }
 
+    function updateNumberButtons() {
+      const k = parseInt(document.getElementById("k").value);
+      const grid = document.getElementById("numberGrid");
+      grid.innerHTML = "";
+      absentSet.clear();
+
+      for (let i = 1; i <= k; i++) {
+        const btn = document.createElement("div");
+        btn.className = "num-btn";
+        btn.textContent = i;
+        btn.onclick = () => toggleAbsent(i, btn);
+        grid.appendChild(btn);
+      }
+    }
+
+    function toggleAbsent(i, btn) {
+      if (absentSet.has(i)) {
+        absentSet.delete(i);
+        btn.classList.remove("selected");
+      } else {
+        absentSet.add(i);
+        btn.classList.add("selected");
+      }
+    }
+
+    function resetAbsent() {
+      absentSet.clear();
+      document.querySelectorAll(".num-btn").forEach(btn => btn.classList.remove("selected"));
+    }
+
     function generate() {
       const n = parseInt(document.getElementById("n").value);
       const k = parseInt(document.getElementById("k").value);
-      const absent = document.getElementById("absent").value
-        .split(",")
-        .map(x => parseInt(x.trim()))
-        .filter(x => !isNaN(x));
       const mode = document.getElementById("mode").value;
 
       const available = [];
       for (let i = 1; i <= k; i++) {
-        if (!absent.includes(i)) available.push(i);
+        if (!absentSet.has(i)) available.push(i);
       }
 
       if (available.length === 0) {
-        // 候補がない場合は表示を初期化
         singleGenerated.clear();
         history = [];
         updateResultDisplay();
@@ -132,10 +193,8 @@
         const shuffled = shuffle([...available]);
         history = shuffled.slice(0, Math.min(n, shuffled.length));
       } else {
-        // 単発生成
         let remaining = available.filter(x => !singleGenerated.has(x));
         if (remaining.length === 0) {
-          // すべて出たらリセット
           singleGenerated.clear();
           history = [];
           remaining = [...available];
@@ -148,6 +207,9 @@
 
       updateResultDisplay();
     }
+
+    // 初期表示
+    updateNumberButtons();
   </script>
 </body>
 </html>
